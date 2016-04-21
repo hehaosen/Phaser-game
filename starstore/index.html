@@ -1,0 +1,152 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 4</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+
+function preload() {
+
+    game.load.image('sky', 'assets/sky.png');
+    game.load.image('ground', 'assets/platform.png');
+    game.load.image('star', 'assets/star.png');
+    game.load.spritesheet('dude', 'assets/dude.png', 32, 48);
+
+}
+
+var player;
+var platforms;
+var cursors;
+var score = 0;
+var scoreText;
+
+function create() {
+
+    //  我们将使用物理,所以使用物理系统
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+
+    //  把资产sky 引入 作为背景图
+    game.add.sprite(0, 0, 'sky');
+
+    //  平台组包含地面和2个壁板我们可以跳上
+    platforms = game.add.group();
+
+    //  我们允许在这组内创建任何对象
+    platforms.enableBody = true;
+
+    // 这里我们创建地面
+    var ground = platforms.create(0, game.world.height - 64, 'ground');
+
+    // 把地面的 长*2 宽*2 用来适配屏幕(原ground图片尺寸400x32)
+    ground.scale.setTo(2, 2);
+
+    //  设置immovable避免当玩家碰撞到它它会移动
+    ground.body.immovable = true;
+
+    // 现在让我们创建两个壁板
+    var ledge = platforms.create(400, 400, 'ground');
+
+    ledge.body.immovable = true;
+
+    ledge = platforms.create(-150, 250, 'ground');
+
+    ledge.body.immovable = true;
+
+    // 设置一个人物 并且让定位开始位置
+    player = game.add.sprite(32, game.world.height - 150, 'dude');
+
+    //  我们需要添加物理特性给这个人物
+    game.physics.arcade.enable(player);
+
+    //  人物的物理特性. 给这个小人当高空掉落的时候有个轻微的反弹
+    player.body.bounce.y = 0.2; //弹性
+    player.body.gravity.y = 300; //重力，影响掉落速度
+    player.body.collideWorldBounds = true;//是否不能超出游戏屏幕
+
+    //  添加两个动画, 向左跑和向右跑.
+    player.animations.add('left', [0, 1, 2, 3], 10, true);
+    player.animations.add('right', [5, 6, 7, 8], 10, true);
+
+    // 收集星星
+    stars = game.add.group();
+
+    //  我们允许在这组内创建任何对象
+    stars.enableBody = true;
+
+    // 我们将创建12个星星，并等相距分开
+    for (var i = 0; i < 12; i++)
+    {
+        // 创建星星并且放入'stars'组
+        var star = stars.create(i * 70, 0, 'star');
+
+        //  星星增加重力
+        star.body.gravity.y = 300;//重力，影响掉落速度
+
+        //  给每个星星增加随机反弹值
+        star.body.bounce.y = 0.7 + Math.random() * 0.2;
+    }
+
+    //  分数
+    scoreText = game.add.text(16, 16, '分数: 0', { fontSize: '32px', fill: '#000' });
+
+    //  获取键盘控制.
+    cursors = game.input.keyboard.createCursorKeys();
+
+}
+
+function update() {
+    // 让人物与平台产生碰撞
+    game.physics.arcade.collide(player, platforms);
+    game.physics.arcade.collide(stars, platforms);
+    game.physics.arcade.overlap(player, stars, collectStar, null, this);
+    //  重置人物运动
+    player.body.velocity.x = 0;
+
+    if (cursors.left.isDown)
+    {
+        //  向左移动
+        player.body.velocity.x = -150;
+
+        player.animations.play('left');
+    }
+    else if (cursors.right.isDown)
+    {
+        //  向右移动
+        player.body.velocity.x = 150;
+
+        player.animations.play('right');
+    }
+    else
+    {
+        //  站着不动
+        player.animations.stop();
+
+        player.frame = 4;
+    }
+
+    //  当人物接触地面的时候按上键
+    if (cursors.up.isDown && player.body.touching.down)
+    {
+        player.body.velocity.y = -350;
+    }
+}
+function collectStar (player, star) {
+    star.kill();
+    score += 10;
+    scoreText.text = '分数: ' + score;
+}
+</script>
+
+</body>
+</html>
